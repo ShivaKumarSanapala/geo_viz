@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
+import { getStateDemographics } from '../api'; // Import the API function
 import Sidebar from './Sidebar'; // Import Sidebar component
 
 // Make sure you replace 'YOUR_MAPBOX_API_KEY' with your actual Mapbox Access Token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const MapComponent = () => {
-    const [stateName, setStateName] = useState(""); // Store the selected state name
+    const [stateName, setStateName] = useState(""); // Store selected state name
+    const [stateData, setStateData] = useState(null); // Store fetched state data
 
     useEffect(() => {
         const map = new mapboxgl.Map({
@@ -19,11 +21,11 @@ const MapComponent = () => {
         });
 
         fetch('geo_data/us/2010/state.geo.json')
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
                 map.addSource('us-states', {
                     type: 'geojson',
-                    data: data
+                    data: data,
                 });
 
                 map.addLayer({
@@ -75,17 +77,24 @@ const MapComponent = () => {
                 });
 
                 // Add click event for highlighting and logging state name
-                map.on('click', 'state-boundaries', (e) => {
+                map.on('click', 'state-boundaries', async (e) => {
                     const feature = e.features[0]; // Get the feature clicked
                     const state = feature.properties.NAME10;
                     console.log(`${state} was clicked!`);
+
+                    // Fetch demographic data for the clicked state
+                    const data = await getStateDemographics(state);
+
+                    if (data) {
+                        setStateData(data); // Update the state data for the sidebar
+                    }
 
                     // Highlight the clicked state for a brief moment
                     map.setPaintProperty('state-boundaries', 'fill-color', [
                         'case',
                         ['==', ['get', 'NAME10'], state], // If the clicked state is this one
                         '#ff0800', // Set clicked state to red
-                        '#888888'  // Set other states to default color
+                        '#888888', // Set other states to default color
                     ]);
 
                     // Set a timeout to reset the fill color after 1 second
@@ -94,7 +103,7 @@ const MapComponent = () => {
                     }, 300);
                 });
             })
-            .catch(error => {
+            .catch((error) => {
                 console.error('Error loading GeoJSON data:', error);
             });
 
@@ -106,7 +115,7 @@ const MapComponent = () => {
     return (
         <div>
             <div id="map" style={{ width: '100%', height: '100vh' }}></div>
-            <Sidebar stateName={stateName} /> {/* Pass stateName to Sidebar */}
+            <Sidebar stateName={stateName} stateData={stateData} /> {/* Pass stateName and stateData to Sidebar */}
         </div>
     );
 };
