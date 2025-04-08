@@ -1,7 +1,7 @@
 import React from 'react';
 import MapComponent from "./components/MapComponent";
 import Sidebar from "./components/Sidebar";
-import './App.css'; // Import CSS for styling
+import './css/App.css'; // Import CSS for styling
 
 function App() {
     return (
