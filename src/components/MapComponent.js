@@ -46,34 +46,52 @@ const MapComponent = () => {
                     }
                 });
 
-                const popup = new mapboxgl.Popup({
-                    closeButton: false,
-                    closeOnClick: false
+                let currentStateName = "";
+
+                map.on('mousemove', 'state-boundaries', (e) => {
+                    const features = e.features;
+                    if (!features.length) return;
+
+                    const feature = features[0];
+                    const state = feature.properties.NAME10;
+
+                    // Only update if the state has changed
+                    if (state !== currentStateName) {
+                        currentStateName = state;
+                        setStateName(state); // Update the selected state name
+                    }
                 });
 
-                map.on('mouseenter', 'state-boundaries', (e) => {
-                    const feature = e.features[0];
-                    const properties = feature.properties;
-                    const state = properties.NAME10;
-
-                    // Update the stateName in the parent component
-                    setStateName(state); // Set the selected state name
-
-                    const popupContent = `
-                        <h3>${state}</h3>
-                        <p><strong>State Code:</strong> ${properties.STUSPS}</p>
-                        <p><strong>GEOID:</strong> ${properties.GEOID}</p>
-                        <p><strong>Land Area (sq meters):</strong> ${properties.ALAND}</p>
-                        <p><strong>Water Area (sq meters):</strong> ${properties.AWATER}</p>
-                    `;
-                    popup.setLngLat(e.lngLat)
-                        .setHTML(popupContent)
-                        .addTo(map);
+                // Change cursor to 'pointer' when hovering over the state boundaries
+                map.on('mouseenter', 'state-boundaries', () => {
+                    map.getCanvas().style.cursor = 'pointer'; // Set the cursor to 'pointer' (hand)
                 });
 
+                // Reset cursor when mouse leaves the state boundaries
                 map.on('mouseleave', 'state-boundaries', () => {
-                    popup.remove();
+                    map.getCanvas().style.cursor = '';
                     setStateName(""); // Clear the state name when mouse leaves
+                    currentStateName = "";
+                });
+
+                // Add click event for highlighting and logging state name
+                map.on('click', 'state-boundaries', (e) => {
+                    const feature = e.features[0]; // Get the feature clicked
+                    const state = feature.properties.NAME10;
+                    console.log(`${state} was clicked!`);
+
+                    // Highlight the clicked state for a brief moment
+                    map.setPaintProperty('state-boundaries', 'fill-color', [
+                        'case',
+                        ['==', ['get', 'NAME10'], state], // If the clicked state is this one
+                        '#ff0800', // Set clicked state to red
+                        '#888888'  // Set other states to default color
+                    ]);
+
+                    // Set a timeout to reset the fill color after 1 second
+                    setTimeout(() => {
+                        map.setPaintProperty('state-boundaries', 'fill-color', '#888888'); // Reset to default color
+                    }, 300);
                 });
             })
             .catch(error => {
