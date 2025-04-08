@@ -1,7 +1,7 @@
 import React from 'react';
 import '../css/Sidebar.css';
 
-const Sidebar = () => {
+const Sidebar = ({ stateName }) => {
     return (
         <div className="sidebar">
             <div className="header">
@@ -57,6 +57,13 @@ const Sidebar = () => {
                         <span className="slider"></span>
                     </label>
                 </div>
+
+                {/* Display selected state name here */}
+                {stateName && (
+                    <div className="state-name">
+                        <h4>Selected State: {stateName}</h4>
+                    </div>
+                )}
             </div>
         </div>
     );
