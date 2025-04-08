@@ -1,13 +1,16 @@
 import React from 'react';
-import MapView from './components/MapView';
+import MapComponent from "./components/MapComponent";
+import Sidebar from "./components/Sidebar";
+import './App.css'; // Import CSS for styling
 
 function App() {
-  return (
-      <div>
-        <h1>Geospatial Visualization</h1>
-        <MapView />
-      </div>
-  );
+    return (
+        <div className="app-container">
+            {/*<MapView />*/}
+            <Sidebar />
+            <MapComponent />
+        </div>
+    );
 }
 
 export default App;

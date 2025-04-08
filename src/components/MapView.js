@@ -1,7 +1,7 @@
-// src/components/MapView.js
 import React, { useRef, useEffect, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import './MapView.css';
+import 'mapbox-gl-css';
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
@@ -16,13 +16,13 @@ const MapView = () => {
             container: mapContainer.current,
             style: 'mapbox://styles/mapbox/light-v10',
             center: [-98.5795, 39.8283], // Center of US
-            zoom: 3,
+            zoom: 2,
         });
 
         map.current.on('load', () => {
             map.current.addSource('boundaries', {
                 type: 'geojson',
-                data: '/geo_data/us-boundaries.geojson',
+                data: 'geo_data/us/2022/state.json',
             });
 
             map.current.addLayer({
@@ -31,7 +31,7 @@ const MapView = () => {
                 source: 'boundaries',
                 paint: {
                     'fill-color': '#888888',
-                    'fill-opacity': 0.4,
+                    'fill-opacity': 0.5,
                 },
             });
 
