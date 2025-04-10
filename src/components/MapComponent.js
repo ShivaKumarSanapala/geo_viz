@@ -185,27 +185,24 @@ const MapComponent = () => {
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
+
                     // Remove old markers before adding a new one
-                    markerRef.current.forEach((marker) => {
-                        marker.remove();
-                    });
-                    markerRef.current = []; // Reset the markers list
+                    markerRef.current.forEach(marker => marker.remove());
+                    markerRef.current = [];
 
                     // Create and add a marker at the clicked location
-                    const newMarker = new mapboxgl.Marker()
-                        .setLngLat(coordinates)
-                        .addTo(map);
-
-                    // Store the marker reference
+                    const newMarker = new mapboxgl.Marker().setLngLat(coordinates).addTo(map);
                     markerRef.current.push(newMarker);
-                    // Load demographics if applicable.
-                    if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
-                        try {
-                            const data = await getStateDemographics(feature.properties.GEOID);
-                            if (!cancelled && data) setStateData(data);
-                        } catch (demogError) {
-                            console.error('Error fetching demographics:', demogError);
+
+                    // Always load demographics regardless of boundary type.
+                    try {
+                        // Calling getStateDemographics without additional conditions.
+                        const data = await getStateDemographics(coordinates.lat, coordinates.lng);
+                        if (!cancelled && data) {
+                            setStateData(data);
                         }
+                    } catch (demogError) {
+                        console.error('Error fetching demographics:', demogError);
                     }
 
                     // Fetch nearby places on click.
@@ -229,20 +226,14 @@ const MapComponent = () => {
                     // Add circle to show the search radius.
                     const circle = createGeoJSONCircle([coordinates.lng, coordinates.lat], radius / 1000);
                     if (map) {
-                        map.addSource('radius-circle', {
-                            type: 'geojson',
-                            data: circle
-                        });
+                        map.addSource('radius-circle', { type: 'geojson', data: circle });
                         map.addLayer({
                             id: 'radius-circle',
                             type: 'fill',
                             source: 'radius-circle',
-                            paint: {
-                                'fill-color': '#414ee4',
-                                'fill-opacity': 0.2
-                            }
+                            paint: { 'fill-color': '#414ee4', 'fill-opacity': 0.2 }
                         });
-                        circleLayerAdded.current = true; // Mark that circle has been added
+                        circleLayerAdded.current = true;
                     }
                 });
             } catch (error) {
