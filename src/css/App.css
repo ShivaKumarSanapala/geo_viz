@@ -52,6 +52,25 @@
   font-size: 14px;
 }
 
+.popup-header {
+  display: flex;
+  justify-content: flex-end;
+  position: absolute;
+  top: 10px;
+  right: 10px;
+}
+
+.popup-close-btn {
+  font-size: 20px;
+  font-weight: bold;
+  cursor: pointer;
+  color: #888;
+}
+
+.popup-close-btn:hover {
+  color: #ff0800;
+}
+
 .popup h4 {
   margin-top: 0;
   font-size: 16px;

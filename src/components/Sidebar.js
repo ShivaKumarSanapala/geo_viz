@@ -6,9 +6,8 @@ const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBounda
         <div className="sidebar">
             <div className="header">
                 <h3>
-                    <span className="visually-hidden">Mapbox</span>
-                    <span className="title">Boundaries Explorer</span>
-                    <small>v4</small>
+                    <span className="title">Turl Stree Group</span>
+                    <small>v1</small>
                 </h3>
             </div>
 
