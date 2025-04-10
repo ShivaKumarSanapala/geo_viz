@@ -1,16 +1,24 @@
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { getStateDemographics } from '../api'; // Import the API function
-import Sidebar from './Sidebar'; // Import Sidebar component
+import { getStateDemographics } from '../api';
+import Sidebar from './Sidebar';
+import {createGeoJSONCircle} from "../utils/createGeoJSONCircle";
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const colorPalette = [
-    '#352ef6', '#6d84fa', '#4287f5', '#4298ec', '#7e42f5', '#f54242', '#42f5e9',
-    '#818cf8', '#4b6afb', '#0318f6'
+    '#00008B', // Dark Blue
+    '#0000CD', // Medium Blue
+    '#4169E1', // Royal Blue
+    '#4682B4', // Steel Blue
+    '#5F9EA0', // Cadet Blue
+    '#87CEEB', // Sky Blue
+    '#4682B4', // Steel Blue (lighter)
+    '#00BFFF', // Deep Sky Blue
+    '#1E90FF', // Dodger Blue
+    '#ADD8E6'  // Light Blue
 ];
-
 
 const MapComponent = () => {
     const [stateName, setStateName] = useState("");
@@ -20,35 +28,6 @@ const MapComponent = () => {
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const mapRef = useRef(null);
     const previousLayerIds = useRef([]);
-
-    // Function to create a GeoJSON circle
-    function createGeoJSONCircle(center, radiusInKm, points = 64) {
-        const coords = {
-            latitude: center[1],
-            longitude: center[0]
-        };
-
-        const km = radiusInKm;
-        const ret = [];
-        const distanceX = km / (111.320 * Math.cos(coords.latitude * Math.PI / 180));
-        const distanceY = km / 110.574;
-
-        for (let i = 0; i < points; i++) {
-            const theta = (i / points) * (2 * Math.PI);
-            const x = distanceX * Math.cos(theta);
-            const y = distanceY * Math.sin(theta);
-            ret.push([coords.longitude + x, coords.latitude + y]);
-        }
-        ret.push(ret[0]);
-
-        return {
-            type: 'Feature',
-            geometry: {
-                type: 'Polygon',
-                coordinates: [ret]
-            }
-        };
-    }
 
     // Effect for adding markers and boundaries when nearbyPlaces change.
     useEffect(() => {
@@ -225,20 +204,10 @@ const MapComponent = () => {
                         }
                     }
 
-                    // Only manipulate the layer if map still exists.
-                    if (map && map.getLayer('state-boundaries')) {
-                        map.setPaintProperty('state-boundaries', 'fill-color', [
-                            'case',
-                            ['==', ['get', 'GEOID'], feature.properties.GEOID],
-                            '#ff0800',
-                            '#888888'
-                        ]);
-                    }
-
                     // Fetch nearby places on click.
                     try {
                         const res = await fetch(
-                            `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=50`
+                            `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=30`
                         );
                         if (cancelled) return;
                         const nearby = await res.json();
@@ -270,14 +239,6 @@ const MapComponent = () => {
                             }
                         });
                     }
-
-                    // Reset the fill color after a delay,
-                    // but first check that the map and layer exist.
-                    setTimeout(() => {
-                        if (map && map.getLayer('state-boundaries')) {
-                            map.setPaintProperty('state-boundaries', 'fill-color', '#888888');
-                        }
-                    }, 300);
                 });
             } catch (error) {
                 console.error('Error loading GeoJSON data:', error);
