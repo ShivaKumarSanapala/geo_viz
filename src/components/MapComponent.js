@@ -5,6 +5,11 @@ import Sidebar from './Sidebar'; // Import Sidebar component
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+const colorPalette = [
+    '#352ef6', '#6d84fa', '#4287f5', '#4298ec', '#7e42f5', '#f54242', '#42f5e9',
+    '#818cf8', '#4b6afb', '#0318f6'
+];
+
 
 const MapComponent = () => {
     const [stateName, setStateName] = useState("");
@@ -44,6 +49,7 @@ const MapComponent = () => {
             }
         };
     }
+    const previousLayerIds = useRef([]);
 
     // Effect for adding markers when nearbyPlaces change.
     useEffect(() => {
@@ -52,12 +58,12 @@ const MapComponent = () => {
         const map = mapRef.current;
         const markers = [];
 
-        // Cleanup old boundary layers and sources first
-        nearbyPlaces.forEach((place, index) => {
-            const layerId = `nearby-boundary-${index}`;
+        // Clean up old layers and sources
+        previousLayerIds.current.forEach(layerId => {
             if (map.getLayer(layerId)) map.removeLayer(layerId);
             if (map.getSource(layerId)) map.removeSource(layerId);
         });
+        previousLayerIds.current = [];
 
         nearbyPlaces.forEach((place, index) => {
             const markerEl = document.createElement('div');
@@ -73,9 +79,13 @@ const MapComponent = () => {
                 .addTo(map);
             markers.push(marker);
 
-            // Add GeoJSON boundary as a layer if available
             if (place.geojson) {
                 const sourceId = `nearby-boundary-${index}`;
+                const fillLayerId = `nearby-fill-${index}`;
+                const lineLayerId = `nearby-line-${index}`;
+                const fillColor = colorPalette[index % colorPalette.length];
+
+                // Add GeoJSON source
                 map.addSource(sourceId, {
                     type: 'geojson',
                     data: {
@@ -85,25 +95,40 @@ const MapComponent = () => {
                     }
                 });
 
+                // Fill layer
                 map.addLayer({
-                    id: sourceId,
+                    id: fillLayerId,
+                    type: 'fill',
+                    source: sourceId,
+                    paint: {
+                        'fill-color': fillColor,
+                        'fill-opacity': 0.4
+                    }
+                });
+
+                // Line layer (outline)
+                map.addLayer({
+                    id: lineLayerId,
                     type: 'line',
                     source: sourceId,
                     paint: {
-                        'line-color': '#f54291',
+                        'line-color': fillColor,
                         'line-width': 2
                     }
                 });
+
+                previousLayerIds.current.push(fillLayerId, lineLayerId, sourceId);
             }
         });
 
+        // Cleanup function = "undo"
         return () => {
             markers.forEach(m => m.remove());
-            nearbyPlaces.forEach((_, index) => {
-                const layerId = `nearby-boundary-${index}`;
+            previousLayerIds.current.forEach(layerId => {
                 if (map.getLayer(layerId)) map.removeLayer(layerId);
                 if (map.getSource(layerId)) map.removeSource(layerId);
             });
+            previousLayerIds.current = [];
         };
     }, [nearbyPlaces]);
 
@@ -207,7 +232,7 @@ const MapComponent = () => {
                     // Fetch nearby places on click.
                     try {
                         const res = await fetch(
-                            `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=10`
+                            `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=50`
                         );
                         const nearby = await res.json();
                         setNearbyPlaces(nearby.nearby || []);
@@ -240,7 +265,7 @@ const MapComponent = () => {
                     // Reset the fill color after a brief timeout.
                     setTimeout(() => {
                         map.setPaintProperty('state-boundaries', 'fill-color', '#888888');
-                    }, 300);
+                    }, 3000);
                 });
 
             } catch (error) {
