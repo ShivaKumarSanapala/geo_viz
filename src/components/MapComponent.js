@@ -20,6 +20,7 @@ const MapComponent = () => {
     const mapRef = useRef(null);
     const previousLayerIds = useRef([]);
     const circleLayerAdded = useRef(false); // To track if the circle layer has been added
+    const markerRef = useRef([]); // Store references to markers
 
     // Effect for adding markers and boundaries when nearbyPlaces change.
     useEffect(() => {
@@ -184,11 +185,19 @@ const MapComponent = () => {
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
+                    // Remove old markers before adding a new one
+                    markerRef.current.forEach((marker) => {
+                        marker.remove();
+                    });
+                    markerRef.current = []; // Reset the markers list
+
                     // Create and add a marker at the clicked location
-                    new mapboxgl.Marker()
+                    const newMarker = new mapboxgl.Marker()
                         .setLngLat(coordinates)
                         .addTo(map);
 
+                    // Store the marker reference
+                    markerRef.current.push(newMarker);
                     // Load demographics if applicable.
                     if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
                         try {
@@ -265,7 +274,7 @@ const MapComponent = () => {
             map.remove();
             document.removeEventListener('click', handleClickOutside);
         };
-    }, [selectedBoundaryType, radius]);
+    }, [selectedBoundaryType]);
 
     return (
         <>
