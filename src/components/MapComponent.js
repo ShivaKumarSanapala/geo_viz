@@ -10,6 +10,7 @@ const MapComponent = () => {
     const [stateName, setStateName] = useState("");
     const [stateData, setStateData] = useState(null);
     const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
+    const [popupInfo, setPopupInfo] = useState({ name: "", lat: null, lng: null }); // State for popup content
 
     useEffect(() => {
         const map = new mapboxgl.Map({
@@ -68,6 +69,8 @@ const MapComponent = () => {
                     if (!features.length) return;
 
                     const name = features[0].properties.NAME;
+                    const coordinates = e.lngLat;
+
                     if (name !== currentStateName) {
                         currentStateName = name;
                         setStateName(name);
@@ -85,21 +88,27 @@ const MapComponent = () => {
 
                 map.on('click', 'state-boundaries', async (e) => {
                     const feature = e.features[0];
-                    const geoid = feature.properties.GEOID;
+                    const name = feature.properties.NAME;
+                    const coordinates = e.lngLat;
 
-                    console.log(`${geoid} was clicked!`);
+                    // Update popup info
+                    setPopupInfo({
+                        name: name,
+                        lat: coordinates.lat,
+                        lng: coordinates.lng
+                    });
 
                     // Load demographics only if we're viewing states
                     if (selectedBoundaryType === 'states') {
-                        const data = await getStateDemographics(geoid);
+                        const data = await getStateDemographics(feature.properties.GEOID);
                         if (data) setStateData(data);
                     }
 
                     // Ensure GEOID is valid before setting the color
-                    if (geoid) {
+                    if (feature.properties.GEOID) {
                         map.setPaintProperty('state-boundaries', 'fill-color', [
                             'case',
-                            ['==', ['get', 'GEOID'], geoid],
+                            ['==', ['get', 'GEOID'], feature.properties.GEOID],
                             '#ff0800', // Red color for the clicked state
                             '#888888', // Default color for other states
                         ]);
@@ -132,9 +141,17 @@ const MapComponent = () => {
                 selectedBoundaryType={selectedBoundaryType}
                 setSelectedBoundaryType={setSelectedBoundaryType}
             />
+            {/* Popup at the bottom of the page */}
+            {popupInfo.name && (
+                <div className="popup">
+                    <h4>Boundary Information</h4>
+                    <p><strong>Boundary Name:</strong> {popupInfo.name}</p>
+                    <p><strong>Latitude:</strong> {popupInfo.lat.toFixed(4)}</p>
+                    <p><strong>Longitude:</strong> {popupInfo.lng.toFixed(4)}</p>
+                </div>
+            )}
         </>
     );
 };
-
 
 export default MapComponent;
