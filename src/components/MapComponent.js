@@ -7,8 +7,9 @@ import Sidebar from './Sidebar'; // Import Sidebar component
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const MapComponent = () => {
-    const [stateName, setStateName] = useState(""); // Store selected state name
-    const [stateData, setStateData] = useState(null); // Store fetched state data
+    const [stateName, setStateName] = useState("");
+    const [stateData, setStateData] = useState(null);
+    const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
 
     useEffect(() => {
         const map = new mapboxgl.Map({
@@ -16,16 +17,26 @@ const MapComponent = () => {
             style: 'mapbox://styles/mapbox/streets-v11',
             center: [-99.73, 43.41],
             zoom: 3,
-            projection: 'globe', // Enable globe view
-            antialias: true, // Enable antialiasing for smoother rendering
+            projection: 'globe',
+            antialias: true,
         });
 
-        const loadGeoJSONData = async () => {
+        let currentSource = null;
+
+        const loadGeoJSONData = async (type) => {
+            let filePath = `geo_data/${type}.geo.json`;
+
             try {
-                const response = await fetch('geo_data/us/places/cb_2023_us_place_500k.geo.json');
+                const response = await fetch(filePath);
                 const data = await response.json();
 
-                map.addSource('us-states', {
+                if (map.getSource('boundaries')) {
+                    map.removeLayer('state-boundaries');
+                    map.removeLayer('state-borders');
+                    map.removeSource('boundaries');
+                }
+
+                map.addSource('boundaries', {
                     type: 'geojson',
                     data,
                 });
@@ -33,7 +44,7 @@ const MapComponent = () => {
                 map.addLayer({
                     id: 'state-boundaries',
                     type: 'fill',
-                    source: 'us-states',
+                    source: 'boundaries',
                     paint: {
                         'fill-color': '#888888',
                         'fill-opacity': 0.1,
@@ -43,7 +54,7 @@ const MapComponent = () => {
                 map.addLayer({
                     id: 'state-borders',
                     type: 'line',
-                    source: 'us-states',
+                    source: 'boundaries',
                     paint: {
                         'line-color': '#000000',
                         'line-width': 0.5,
@@ -51,27 +62,25 @@ const MapComponent = () => {
                 });
 
                 let currentStateName = "";
+
                 map.on('mousemove', 'state-boundaries', (e) => {
                     const features = e.features;
                     if (!features.length) return;
 
-                    const state = features[0].properties.NAME;
-                    if (state !== currentStateName) {
-                        currentStateName = state;
-                        setStateName(state);
+                    const name = features[0].properties.NAME;
+                    if (name !== currentStateName) {
+                        currentStateName = name;
+                        setStateName(name);
                     }
                 });
 
-                // Set cursor to pointer on hover
                 map.on('mouseenter', 'state-boundaries', () => {
                     map.getCanvas().style.cursor = 'pointer';
                 });
 
-                // Reset cursor when mouse leaves
                 map.on('mouseleave', 'state-boundaries', () => {
                     map.getCanvas().style.cursor = '';
                     setStateName("");
-                    currentStateName = "";
                 });
 
                 map.on('click', 'state-boundaries', async (e) => {
@@ -80,21 +89,24 @@ const MapComponent = () => {
 
                     console.log(`${geoid} was clicked!`);
 
-                    // Fetch demographic data for the clicked state
-                    const data = await getStateDemographics(geoid);
-                    if (data) setStateData(data);
+                    // Load demographics only if we're viewing states
+                    if (selectedBoundaryType === 'states') {
+                        const data = await getStateDemographics(geoid);
+                        if (data) setStateData(data);
+                    }
 
-                    // Highlight the clicked state
-                    map.setPaintProperty('state-boundaries', 'fill-color', [
-                        'case',
-                        ['==', ['get', 'GEOID'], geoid],
-                        '#ff0800',
-                        '#888888',
-                    ]);
+                    // Ensure GEOID is valid before setting the color
+                    if (geoid) {
+                        map.setPaintProperty('state-boundaries', 'fill-color', [
+                            'case',
+                            ['==', ['get', 'GEOID'], geoid],
+                            '#ff0800', // Red color for the clicked state
+                            '#888888', // Default color for other states
+                        ]);
+                    }
 
                     setTimeout(() => {
-                        // Reset state colors and filters
-                        map.setFilter('state-boundaries', ['!=', ['get', 'GEOID'], '']);
+                        // Reset to default color after a brief timeout
                         map.setPaintProperty('state-boundaries', 'fill-color', '#888888');
                     }, 300);
                 });
@@ -104,19 +116,25 @@ const MapComponent = () => {
             }
         };
 
-        loadGeoJSONData();
+        loadGeoJSONData(selectedBoundaryType);
 
         return () => {
             map.remove();
         };
-    }, []);
+    }, [selectedBoundaryType]); // Reload map layer when boundary type changes
 
     return (
-        <div>
+        <>
             <div id="map" style={{ width: '100%', height: '100vh' }}></div>
-            <Sidebar stateName={stateName} stateData={stateData} />
-        </div>
+            <Sidebar
+                stateName={stateName}
+                stateData={stateData}
+                selectedBoundaryType={selectedBoundaryType}
+                setSelectedBoundaryType={setSelectedBoundaryType}
+            />
+        </>
     );
 };
+
 
 export default MapComponent;

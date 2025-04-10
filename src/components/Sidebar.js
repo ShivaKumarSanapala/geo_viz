@@ -1,7 +1,7 @@
 import React from 'react';
 import '../css/Sidebar.css';
 
-const Sidebar = ({ stateName, stateData }) => {
+const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBoundaryType }) => {
     return (
         <div className="sidebar">
             <div className="header">
@@ -14,12 +14,12 @@ const Sidebar = ({ stateName, stateData }) => {
 
             <div className="controls">
                 <fieldset className="select-fieldset">
-                    <label>Region</label>
-                    <div className="select-container" id="selectCountryContainer">
-                        <select>
-                            <option>Default: USA</option>
-                            <option>Canada</option>
-                            <option>Mexico</option>
+                    <label>Boundary Type</label>
+                    <div className="select-container">
+                        <select value={selectedBoundaryType} onChange={(e) => setSelectedBoundaryType(e.target.value)}>
+                            <option value="states">States</option>
+                            <option value="counties">Counties</option>
+                            <option value="regions">Regions</option>
                         </select>
                     </div>
                 </fieldset>
