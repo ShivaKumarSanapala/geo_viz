@@ -2,22 +2,13 @@ import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { getStateDemographics } from '../api';
 import Sidebar from './Sidebar';
-import {createGeoJSONCircle} from "../utils/createGeoJSONCircle";
+import { createGeoJSONCircle } from "../utils/createGeoJSONCircle";
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const colorPalette = [
-    '#00008B', // Dark Blue
-    '#0000CD', // Medium Blue
-    '#4169E1', // Royal Blue
-    '#4682B4', // Steel Blue
-    '#5F9EA0', // Cadet Blue
-    '#87CEEB', // Sky Blue
-    '#4682B4', // Steel Blue (lighter)
-    '#00BFFF', // Deep Sky Blue
-    '#1E90FF', // Dodger Blue
-    '#ADD8E6'  // Light Blue
+    '#00008B', '#0000CD', '#4169E1', '#4682B4', '#5F9EA0', '#87CEEB', '#4682B4', '#00BFFF', '#1E90FF', '#ADD8E6'
 ];
 
 const MapComponent = () => {
@@ -192,7 +183,6 @@ const MapComponent = () => {
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
-                    console.log(coordinates);
 
                     // Load demographics if applicable.
                     if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
@@ -247,9 +237,20 @@ const MapComponent = () => {
 
         loadGeoJSONData(selectedBoundaryType);
 
+        // Handle click outside map to clear nearby places
+        const handleClickOutside = (e) => {
+            const mapElement = document.getElementById('map');
+            if (!mapElement.contains(e.target)) {
+                setNearbyPlaces([]); // Clear nearby places when clicking outside
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+
         return () => {
             cancelled = true;
             map.remove();
+            document.removeEventListener('click', handleClickOutside);
         };
     }, [selectedBoundaryType]);
 
