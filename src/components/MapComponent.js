@@ -2,39 +2,42 @@ import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { getStateDemographics } from '../api';
 import Sidebar from './Sidebar';
-import { createGeoJSONCircle } from "../utils/createGeoJSONCircle";
+import { createGeoJSONCircle } from '../utils/createGeoJSONCircle';
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
 
 const colorPalette = [
-    '#00008B', '#0000CD', '#4169E1', '#4682B4', '#5F9EA0', '#87CEEB', '#4682B4', '#00BFFF', '#1E90FF', '#ADD8E6'
+    '#00008B', '#0000CD', '#4169E1', '#4682B4', '#5F9EA0',
+    '#87CEEB', '#4682B4', '#00BFFF', '#1E90FF', '#ADD8E6'
 ];
 
 const MapComponent = () => {
-    const [stateName, setStateName] = useState("");
+    const [stateName, setStateName] = useState('');
     const [stateData, setStateData] = useState(null);
     const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
-    const [radius, setRadius] = useState(20000); // in meters
+    const [radius, setRadius] = useState(30000); // in meters
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
+
     const mapRef = useRef(null);
     const previousLayerIds = useRef([]);
-    const circleLayerAdded = useRef(false); // To track if the circle layer has been added
-    const markerRef = useRef([]); // Store references to markers
+    const circleLayerAdded = useRef(false);
+    const markerRef = useRef([]);
 
-    // Effect for adding markers and boundaries when nearbyPlaces change.
+    // Nearby places marker and boundaries update
     useEffect(() => {
         if (!nearbyPlaces.length || !mapRef.current) return;
         const map = mapRef.current;
         const markers = [];
 
-        // Clean up old layers and sources.
+        // Remove existing boundary layers and sources
         previousLayerIds.current.forEach(layerId => {
             if (map.getLayer(layerId)) map.removeLayer(layerId);
             if (map.getSource(layerId)) map.removeSource(layerId);
         });
         previousLayerIds.current = [];
 
+        // Add new places and layers
         nearbyPlaces.forEach((place, index) => {
             const markerEl = document.createElement('div');
             markerEl.className = 'custom-marker';
@@ -55,7 +58,6 @@ const MapComponent = () => {
                 const lineLayerId = `nearby-line-${index}`;
                 const fillColor = colorPalette[index % colorPalette.length];
 
-                // Add GeoJSON source.
                 map.addSource(sourceId, {
                     type: 'geojson',
                     data: {
@@ -65,7 +67,6 @@ const MapComponent = () => {
                     }
                 });
 
-                // Fill layer
                 map.addLayer({
                     id: fillLayerId,
                     type: 'fill',
@@ -76,7 +77,6 @@ const MapComponent = () => {
                     }
                 });
 
-                // Outline layer.
                 map.addLayer({
                     id: lineLayerId,
                     type: 'line',
@@ -91,7 +91,6 @@ const MapComponent = () => {
             }
         });
 
-        // Cleanup (undo): remove markers and layers.
         return () => {
             markers.forEach(m => m.remove());
             previousLayerIds.current.forEach(layerId => {
@@ -102,7 +101,7 @@ const MapComponent = () => {
         };
     }, [nearbyPlaces]);
 
-    // Main map initialization effect.
+    // Main map logic
     useEffect(() => {
         const map = new mapboxgl.Map({
             container: 'map',
@@ -112,9 +111,8 @@ const MapComponent = () => {
             projection: 'globe',
             antialias: true,
         });
-        mapRef.current = map;
 
-        // A cancellation flag to handle async calls.
+        mapRef.current = map;
         let cancelled = false;
 
         const loadGeoJSONData = async (type) => {
@@ -124,17 +122,13 @@ const MapComponent = () => {
                 const response = await fetch(filePath);
                 const data = await response.json();
 
-                // Remove old boundaries.
                 if (map.getSource('boundaries')) {
                     if (map.getLayer('state-boundaries')) map.removeLayer('state-boundaries');
                     if (map.getLayer('state-borders')) map.removeLayer('state-borders');
-                    if (map.getSource('boundaries')) map.removeSource('boundaries');
+                    map.removeSource('boundaries');
                 }
 
-                map.addSource('boundaries', {
-                    type: 'geojson',
-                    data,
-                });
+                map.addSource('boundaries', { type: 'geojson', data });
 
                 map.addLayer({
                     id: 'state-boundaries',
@@ -142,8 +136,8 @@ const MapComponent = () => {
                     source: 'boundaries',
                     paint: {
                         'fill-color': '#888888',
-                        'fill-opacity': 0.1,
-                    },
+                        'fill-opacity': 0.1
+                    }
                 });
 
                 map.addLayer({
@@ -151,109 +145,88 @@ const MapComponent = () => {
                     type: 'line',
                     source: 'boundaries',
                     paint: {
-                        'line-color': '#000000',
-                        'line-width': 0.5,
-                    },
+                        'line-color': '#000',
+                        'line-width': 0.5
+                    }
                 });
 
-                let currentStateName = "";
+                let currentStateName = '';
 
                 map.on('mousemove', 'state-boundaries', (e) => {
                     if (cancelled) return;
-                    const features = e.features;
-                    if (!features.length) return;
-                    const name = features[0].properties.NAME;
-                    if (name !== currentStateName) {
+                    const name = e.features?.[0]?.properties?.NAME;
+                    if (name && name !== currentStateName) {
                         currentStateName = name;
                         setStateName(name);
                     }
                 });
 
                 map.on('mouseenter', 'state-boundaries', () => {
-                    if (cancelled) return;
                     map.getCanvas().style.cursor = 'pointer';
                 });
 
                 map.on('mouseleave', 'state-boundaries', () => {
-                    if (cancelled) return;
                     map.getCanvas().style.cursor = '';
-                    setStateName("");
+                    setStateName('');
                 });
 
                 map.on('click', 'state-boundaries', async (e) => {
-                    if (cancelled) return;
-                    const feature = e.features[0];
-                    const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
 
-                    // Remove old markers before adding a new one
-                    markerRef.current.forEach(marker => marker.remove());
+                    markerRef.current.forEach(m => m.remove());
                     markerRef.current = [];
 
-                    // Create and add a marker at the clicked location
                     const newMarker = new mapboxgl.Marker().setLngLat(coordinates).addTo(map);
                     markerRef.current.push(newMarker);
 
-                    // Always load demographics regardless of boundary type.
                     try {
-                        // Calling getStateDemographics without additional conditions.
-                        const data = await getStateDemographics(coordinates.lat, coordinates.lng);
-                        if (!cancelled && data) {
-                            setStateData(data);
-                        }
-                    } catch (demogError) {
-                        console.error('Error fetching demographics:', demogError);
+                        const demogData = await getStateDemographics(coordinates.lat, coordinates.lng);
+                        if (!cancelled && demogData) setStateData(demogData);
+                    } catch (error) {
+                        console.error('Error fetching demographics:', error);
                     }
 
-                    // Fetch nearby places on click.
                     try {
                         const res = await fetch(
-                            `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=30`
+                            `http://localhost:5001/nearby-redis?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=30`
                         );
-                        if (cancelled) return;
-                        const nearby = await res.json();
-                        if (!cancelled) setNearbyPlaces(nearby.nearby || []);
-                    } catch (err) {
-                        console.error('Error fetching nearby places:', err);
+                        const data = await res.json();
+                        if (!cancelled) setNearbyPlaces(data.nearby || []);
+                    } catch (error) {
+                        console.error('Error fetching nearby places:', error);
                     }
 
-                    // Remove any existing radius circle.
-                    if (map && map.getSource('radius-circle')) {
+                    if (map.getSource('radius-circle')) {
                         if (map.getLayer('radius-circle')) map.removeLayer('radius-circle');
                         map.removeSource('radius-circle');
                     }
 
-                    // Add circle to show the search radius.
                     const circle = createGeoJSONCircle([coordinates.lng, coordinates.lat], radius / 1000);
-                    if (map) {
-                        map.addSource('radius-circle', { type: 'geojson', data: circle });
-                        map.addLayer({
-                            id: 'radius-circle',
-                            type: 'fill',
-                            source: 'radius-circle',
-                            paint: { 'fill-color': '#414ee4', 'fill-opacity': 0.2 }
-                        });
-                        circleLayerAdded.current = true;
-                    }
+                    map.addSource('radius-circle', { type: 'geojson', data: circle });
+                    map.addLayer({
+                        id: 'radius-circle',
+                        type: 'fill',
+                        source: 'radius-circle',
+                        paint: { 'fill-color': '#414ee4', 'fill-opacity': 0.2 }
+                    });
+
+                    circleLayerAdded.current = true;
                 });
-            } catch (error) {
-                console.error('Error loading GeoJSON data:', error);
+            } catch (err) {
+                console.error('Error loading GeoJSON data:', err);
             }
         };
 
         loadGeoJSONData(selectedBoundaryType);
 
-        // Handle click outside map to clear nearby places and remove the circle
         const handleClickOutside = (e) => {
-            const mapElement = document.getElementById('map');
-            if (!mapElement.contains(e.target)) {
-                setNearbyPlaces([]); // Clear nearby places when clicking outside
+            const mapEl = document.getElementById('map');
+            if (!mapEl.contains(e.target)) {
+                setNearbyPlaces([]);
                 if (circleLayerAdded.current) {
-                    if (map.getSource('radius-circle')) {
-                        map.removeLayer('radius-circle');
-                        map.removeSource('radius-circle');
-                    }
-                    circleLayerAdded.current = false; // Reset the flag
+                    if (map.getLayer('radius-circle')) map.removeLayer('radius-circle');
+                    if (map.getSource('radius-circle')) map.removeSource('radius-circle');
+                    circleLayerAdded.current = false;
                 }
             }
         };
@@ -262,8 +235,8 @@ const MapComponent = () => {
 
         return () => {
             cancelled = true;
-            map.remove();
             document.removeEventListener('click', handleClickOutside);
+            map.remove();
         };
     }, [selectedBoundaryType]);
 
@@ -281,6 +254,7 @@ const MapComponent = () => {
             </div>
 
             <div id="map" style={{ width: '100%', height: '100vh' }}></div>
+
             <Sidebar
                 stateName={stateName}
                 stateData={stateData}
