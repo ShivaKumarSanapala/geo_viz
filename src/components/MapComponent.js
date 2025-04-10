@@ -5,6 +5,7 @@ import Sidebar from './Sidebar'; // Import Sidebar component
 
 // Set Mapbox access token
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_TOKEN;
+
 const colorPalette = [
     '#352ef6', '#6d84fa', '#4287f5', '#4298ec', '#7e42f5', '#f54242', '#42f5e9',
     '#818cf8', '#4b6afb', '#0318f6'
@@ -17,9 +18,8 @@ const MapComponent = () => {
     const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
     const [radius, setRadius] = useState(20000); // in meters
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
-
-    // Use ref to store map instance so it can be accessed in multiple hooks.
     const mapRef = useRef(null);
+    const previousLayerIds = useRef([]);
 
     // Function to create a GeoJSON circle
     function createGeoJSONCircle(center, radiusInKm, points = 64) {
@@ -49,16 +49,14 @@ const MapComponent = () => {
             }
         };
     }
-    const previousLayerIds = useRef([]);
 
-    // Effect for adding markers when nearbyPlaces change.
+    // Effect for adding markers and boundaries when nearbyPlaces change.
     useEffect(() => {
         if (!nearbyPlaces.length || !mapRef.current) return;
-
         const map = mapRef.current;
         const markers = [];
 
-        // Clean up old layers and sources
+        // Clean up old layers and sources.
         previousLayerIds.current.forEach(layerId => {
             if (map.getLayer(layerId)) map.removeLayer(layerId);
             if (map.getSource(layerId)) map.removeSource(layerId);
@@ -85,7 +83,7 @@ const MapComponent = () => {
                 const lineLayerId = `nearby-line-${index}`;
                 const fillColor = colorPalette[index % colorPalette.length];
 
-                // Add GeoJSON source
+                // Add GeoJSON source.
                 map.addSource(sourceId, {
                     type: 'geojson',
                     data: {
@@ -106,7 +104,7 @@ const MapComponent = () => {
                     }
                 });
 
-                // Line layer (outline)
+                // Outline layer.
                 map.addLayer({
                     id: lineLayerId,
                     type: 'line',
@@ -121,7 +119,7 @@ const MapComponent = () => {
             }
         });
 
-        // Cleanup function = "undo"
+        // Cleanup (undo): remove markers and layers.
         return () => {
             markers.forEach(m => m.remove());
             previousLayerIds.current.forEach(layerId => {
@@ -131,7 +129,6 @@ const MapComponent = () => {
             previousLayerIds.current = [];
         };
     }, [nearbyPlaces]);
-
 
     // Main map initialization effect.
     useEffect(() => {
@@ -143,8 +140,10 @@ const MapComponent = () => {
             projection: 'globe',
             antialias: true,
         });
-        // Store map instance in ref.
         mapRef.current = map;
+
+        // A cancellation flag to handle async calls.
+        let cancelled = false;
 
         const loadGeoJSONData = async (type) => {
             const filePath = `geo_data/${type}.geo.json`;
@@ -153,7 +152,7 @@ const MapComponent = () => {
                 const response = await fetch(filePath);
                 const data = await response.json();
 
-                // Remove old layers and source if already added.
+                // Remove old boundaries.
                 if (map.getSource('boundaries')) {
                     if (map.getLayer('state-boundaries')) map.removeLayer('state-boundaries');
                     if (map.getLayer('state-borders')) map.removeLayer('state-borders');
@@ -188,9 +187,9 @@ const MapComponent = () => {
                 let currentStateName = "";
 
                 map.on('mousemove', 'state-boundaries', (e) => {
+                    if (cancelled) return;
                     const features = e.features;
                     if (!features.length) return;
-
                     const name = features[0].properties.NAME;
                     if (name !== currentStateName) {
                         currentStateName = name;
@@ -199,33 +198,40 @@ const MapComponent = () => {
                 });
 
                 map.on('mouseenter', 'state-boundaries', () => {
+                    if (cancelled) return;
                     map.getCanvas().style.cursor = 'pointer';
                 });
 
                 map.on('mouseleave', 'state-boundaries', () => {
+                    if (cancelled) return;
                     map.getCanvas().style.cursor = '';
                     setStateName("");
                 });
 
                 map.on('click', 'state-boundaries', async (e) => {
+                    if (cancelled) return;
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
                     console.log(coordinates);
 
-                    // Load demographics only if we're viewing states
+                    // Load demographics if applicable.
                     if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
-                        const data = await getStateDemographics(feature.properties.GEOID);
-                        if (data) setStateData(data);
+                        try {
+                            const data = await getStateDemographics(feature.properties.GEOID);
+                            if (!cancelled && data) setStateData(data);
+                        } catch (demogError) {
+                            console.error('Error fetching demographics:', demogError);
+                        }
                     }
 
-                    // Highlight the clicked state by changing the fill color temporarily.
-                    if (feature.properties.GEOID) {
+                    // Only manipulate the layer if map still exists.
+                    if (map && map.getLayer('state-boundaries')) {
                         map.setPaintProperty('state-boundaries', 'fill-color', [
                             'case',
                             ['==', ['get', 'GEOID'], feature.properties.GEOID],
-                            '#ff0800', // Red for the clicked state
-                            '#888888'  // Default color for other states
+                            '#ff0800',
+                            '#888888'
                         ]);
                     }
 
@@ -234,40 +240,45 @@ const MapComponent = () => {
                         const res = await fetch(
                             `http://localhost:5001/nearby?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=50`
                         );
+                        if (cancelled) return;
                         const nearby = await res.json();
-                        setNearbyPlaces(nearby.nearby || []);
+                        if (!cancelled) setNearbyPlaces(nearby.nearby || []);
                     } catch (err) {
                         console.error('Error fetching nearby places:', err);
                     }
 
-                    // Remove existing radius circle if present.
-                    if (map.getSource('radius-circle')) {
+                    // Remove any existing radius circle.
+                    if (map && map.getSource('radius-circle')) {
                         if (map.getLayer('radius-circle')) map.removeLayer('radius-circle');
                         map.removeSource('radius-circle');
                     }
 
-                    // Add circle showing the radius.
-                    const circle = createGeoJSONCircle([coordinates.lng, coordinates.lat], radius / 1000); // converting meters to kilometers
-                    map.addSource('radius-circle', {
-                        type: 'geojson',
-                        data: circle
-                    });
-                    map.addLayer({
-                        id: 'radius-circle',
-                        type: 'fill',
-                        source: 'radius-circle',
-                        paint: {
-                            'fill-color': '#414ee4',
-                            'fill-opacity': 0.2
-                        }
-                    });
+                    // Add circle to show the search radius.
+                    const circle = createGeoJSONCircle([coordinates.lng, coordinates.lat], radius / 1000);
+                    if (map) {
+                        map.addSource('radius-circle', {
+                            type: 'geojson',
+                            data: circle
+                        });
+                        map.addLayer({
+                            id: 'radius-circle',
+                            type: 'fill',
+                            source: 'radius-circle',
+                            paint: {
+                                'fill-color': '#414ee4',
+                                'fill-opacity': 0.2
+                            }
+                        });
+                    }
 
-                    // Reset the fill color after a brief timeout.
+                    // Reset the fill color after a delay,
+                    // but first check that the map and layer exist.
                     setTimeout(() => {
-                        map.setPaintProperty('state-boundaries', 'fill-color', '#888888');
-                    }, 3000);
+                        if (map && map.getLayer('state-boundaries')) {
+                            map.setPaintProperty('state-boundaries', 'fill-color', '#888888');
+                        }
+                    }, 300);
                 });
-
             } catch (error) {
                 console.error('Error loading GeoJSON data:', error);
             }
@@ -275,11 +286,11 @@ const MapComponent = () => {
 
         loadGeoJSONData(selectedBoundaryType);
 
-        // Clean up on component unmount
         return () => {
+            cancelled = true;
             map.remove();
         };
-    }, [selectedBoundaryType]); // Dependency reloads when boundary type changes
+    }, [selectedBoundaryType]);
 
     return (
         <>
@@ -301,7 +312,6 @@ const MapComponent = () => {
                 selectedBoundaryType={selectedBoundaryType}
                 setSelectedBoundaryType={setSelectedBoundaryType}
             />
-
         </>
     );
 };
