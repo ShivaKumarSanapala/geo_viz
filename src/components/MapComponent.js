@@ -50,35 +50,63 @@ const MapComponent = () => {
         if (!nearbyPlaces.length || !mapRef.current) return;
 
         const map = mapRef.current;
-        // Save marker references so they can be removed later.
         const markers = [];
 
-        nearbyPlaces.forEach(place => {
-            console.log(place)
-            // const marker = new mapboxgl.Marker({ color: "#ff6600" })
-            //     .setLngLat([place.lng, place.lat])
-            //     .setPopup(
-            //         new mapboxgl.Popup().setText(`${place.name} (${place.distance.toFixed(2)} km)`)
-            //     )
-            //     .addTo(map);
+        // Cleanup old boundary layers and sources first
+        nearbyPlaces.forEach((place, index) => {
+            const layerId = `nearby-boundary-${index}`;
+            if (map.getLayer(layerId)) map.removeLayer(layerId);
+            if (map.getSource(layerId)) map.removeSource(layerId);
+        });
+
+        nearbyPlaces.forEach((place, index) => {
             const markerEl = document.createElement('div');
             markerEl.className = 'custom-marker';
 
             const labelEl = document.createElement('div');
             labelEl.className = 'marker-label';
             labelEl.innerText = place.name;
-
             markerEl.appendChild(labelEl);
 
             const marker = new mapboxgl.Marker(markerEl)
                 .setLngLat([place.lng, place.lat])
                 .addTo(map);
             markers.push(marker);
+
+            // Add GeoJSON boundary as a layer if available
+            if (place.geojson) {
+                const sourceId = `nearby-boundary-${index}`;
+                map.addSource(sourceId, {
+                    type: 'geojson',
+                    data: {
+                        type: 'Feature',
+                        geometry: place.geojson,
+                        properties: {}
+                    }
+                });
+
+                map.addLayer({
+                    id: sourceId,
+                    type: 'line',
+                    source: sourceId,
+                    paint: {
+                        'line-color': '#f54291',
+                        'line-width': 2
+                    }
+                });
+            }
         });
 
-        // Cleanup markers on unmount or when nearbyPlaces changes.
-        return () => markers.forEach(m => m.remove());
+        return () => {
+            markers.forEach(m => m.remove());
+            nearbyPlaces.forEach((_, index) => {
+                const layerId = `nearby-boundary-${index}`;
+                if (map.getLayer(layerId)) map.removeLayer(layerId);
+                if (map.getSource(layerId)) map.removeSource(layerId);
+            });
+        };
     }, [nearbyPlaces]);
+
 
     // Main map initialization effect.
     useEffect(() => {
