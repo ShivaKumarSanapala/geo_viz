@@ -19,6 +19,7 @@ const MapComponent = () => {
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
     const mapRef = useRef(null);
     const previousLayerIds = useRef([]);
+    const circleLayerAdded = useRef(false); // To track if the circle layer has been added
 
     // Effect for adding markers and boundaries when nearbyPlaces change.
     useEffect(() => {
@@ -228,6 +229,7 @@ const MapComponent = () => {
                                 'fill-opacity': 0.2
                             }
                         });
+                        circleLayerAdded.current = true; // Mark that circle has been added
                     }
                 });
             } catch (error) {
@@ -237,11 +239,18 @@ const MapComponent = () => {
 
         loadGeoJSONData(selectedBoundaryType);
 
-        // Handle click outside map to clear nearby places
+        // Handle click outside map to clear nearby places and remove the circle
         const handleClickOutside = (e) => {
             const mapElement = document.getElementById('map');
             if (!mapElement.contains(e.target)) {
                 setNearbyPlaces([]); // Clear nearby places when clicking outside
+                if (circleLayerAdded.current) {
+                    if (map.getSource('radius-circle')) {
+                        map.removeLayer('radius-circle');
+                        map.removeSource('radius-circle');
+                    }
+                    circleLayerAdded.current = false; // Reset the flag
+                }
             }
         };
 
@@ -252,7 +261,7 @@ const MapComponent = () => {
             map.remove();
             document.removeEventListener('click', handleClickOutside);
         };
-    }, [selectedBoundaryType]);
+    }, [selectedBoundaryType, radius]);
 
     return (
         <>
