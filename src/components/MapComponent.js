@@ -184,6 +184,10 @@ const MapComponent = () => {
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
+                    // Create and add a marker at the clicked location
+                    new mapboxgl.Marker()
+                        .setLngLat(coordinates)
+                        .addTo(map);
 
                     // Load demographics if applicable.
                     if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
