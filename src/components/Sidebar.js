@@ -17,34 +17,13 @@ const Sidebar = ({ stateName, stateData }) => {
                     <label>Region</label>
                     <div className="select-container" id="selectCountryContainer">
                         <select>
-                            <option>USA</option>
+                            <option>Default: USA</option>
                             <option>Canada</option>
                             <option>Mexico</option>
                         </select>
                     </div>
                 </fieldset>
 
-                <fieldset className="select-fieldset">
-                    <label>Worldview</label>
-                    <div className="select-container">
-                        <select id="selectWorldview" className="select">
-                            <option>Default</option>
-                            <option>Satellite</option>
-                            <option>Terrain</option>
-                        </select>
-                    </div>
-                </fieldset>
-
-                <fieldset className="select-fieldset">
-                    <label>Layer</label>
-                    <div className="select-container" id="selectLayerContainer">
-                        <select>
-                            <option>Roads</option>
-                            <option>Buildings</option>
-                            <option>Water Bodies</option>
-                        </select>
-                    </div>
-                </fieldset>
 
                 <div className="autocomplete" id="autocomplete">
                     <input type="text" placeholder="Search..." />
@@ -61,7 +40,7 @@ const Sidebar = ({ stateName, stateData }) => {
                 {/* Display selected state name */}
                 {stateName && (
                     <div className="state-name">
-                        <h4>Selected State: {stateName}</h4>
+                        <h4>Name: {stateName}</h4>
                     </div>
                 )}
 

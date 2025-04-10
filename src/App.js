@@ -1,12 +1,11 @@
 import React from 'react';
 import MapComponent from "./components/MapComponent";
 import Sidebar from "./components/Sidebar";
-import './css/App.css'; // Import CSS for styling
+import './css/App.css';
 
 function App() {
     return (
         <div className="app-container">
-            {/*<MapView />*/}
             <Sidebar />
             <MapComponent />
         </div>
