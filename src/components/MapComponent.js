@@ -10,13 +10,7 @@ const MapComponent = () => {
     const [stateName, setStateName] = useState("");
     const [stateData, setStateData] = useState(null);
     const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
-    const [popupInfo, setPopupInfo] = useState({
-        name: "",
-        lat: null,
-        lng: null,
-        showPopup: false // State to toggle popup visibility
-    });
-    const [radius, setRadius] = useState(10000); // in meters
+    const [radius, setRadius] = useState(20000); // in meters
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
 
     // Use ref to store map instance so it can be accessed in multiple hooks.
@@ -61,11 +55,23 @@ const MapComponent = () => {
 
         nearbyPlaces.forEach(place => {
             console.log(place)
-            const marker = new mapboxgl.Marker({ color: "#ff6600" })
+            // const marker = new mapboxgl.Marker({ color: "#ff6600" })
+            //     .setLngLat([place.lng, place.lat])
+            //     .setPopup(
+            //         new mapboxgl.Popup().setText(`${place.name} (${place.distance.toFixed(2)} km)`)
+            //     )
+            //     .addTo(map);
+            const markerEl = document.createElement('div');
+            markerEl.className = 'custom-marker';
+
+            const labelEl = document.createElement('div');
+            labelEl.className = 'marker-label';
+            labelEl.innerText = place.name;
+
+            markerEl.appendChild(labelEl);
+
+            const marker = new mapboxgl.Marker(markerEl)
                 .setLngLat([place.lng, place.lat])
-                .setPopup(
-                    new mapboxgl.Popup().setText(`${place.name} (${place.distance.toFixed(2)} km)`)
-                )
                 .addTo(map);
             markers.push(marker);
         });
@@ -154,14 +160,6 @@ const MapComponent = () => {
                     const coordinates = e.lngLat;
                     console.log(coordinates);
 
-                    // Update popup info
-                    setPopupInfo({
-                        name,
-                        lat: coordinates.lat,
-                        lng: coordinates.lng,
-                        showPopup: true // Show popup when clicked
-                    });
-
                     // Load demographics only if we're viewing states
                     if (selectedBoundaryType === 'states' && feature.properties.GEOID) {
                         const data = await getStateDemographics(feature.properties.GEOID);
@@ -230,14 +228,6 @@ const MapComponent = () => {
         };
     }, [selectedBoundaryType]); // Dependency reloads when boundary type changes
 
-    // Close the popup
-    const closePopup = () => {
-        setPopupInfo(prev => ({
-            ...prev,
-            showPopup: false
-        }));
-    };
-
     return (
         <>
             <div className="radius-selector">
@@ -258,23 +248,7 @@ const MapComponent = () => {
                 selectedBoundaryType={selectedBoundaryType}
                 setSelectedBoundaryType={setSelectedBoundaryType}
             />
-            {/* Popup at the bottom of the page */}
-            {popupInfo.showPopup && (
-                <div className="popup">
-                    {/*<p><strong>Name:</strong> {popupInfo.name}</p>*/}
-                    <small>
-                        {popupInfo.lat != null && popupInfo.lng != null ? (
-                            <>
-                                <strong>Lat:</strong> {popupInfo.lat.toFixed(4)}{" "}
-                                <strong>Lng:</strong> {popupInfo.lng.toFixed(4)}
-                            </>
-                        ) : (
-                            "Coordinates not available"
-                        )}
-                    </small>
-                    <button onClick={closePopup} className="popup-close-button">Close</button>
-                </div>
-            )}
+
         </>
     );
 };
