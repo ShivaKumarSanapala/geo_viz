@@ -60,6 +60,7 @@ const MapComponent = () => {
         const markers = [];
 
         nearbyPlaces.forEach(place => {
+            console.log(place)
             const marker = new mapboxgl.Marker({ color: "#ff6600" })
                 .setLngLat([place.lng, place.lat])
                 .setPopup(
@@ -95,9 +96,9 @@ const MapComponent = () => {
 
                 // Remove old layers and source if already added.
                 if (map.getSource('boundaries')) {
-                    map.removeLayer('state-boundaries');
-                    map.removeLayer('state-borders');
-                    map.removeSource('boundaries');
+                    if (map.getLayer('state-boundaries')) map.removeLayer('state-boundaries');
+                    if (map.getLayer('state-borders')) map.removeLayer('state-borders');
+                    if (map.getSource('boundaries')) map.removeSource('boundaries');
                 }
 
                 map.addSource('boundaries', {
@@ -151,6 +152,7 @@ const MapComponent = () => {
                     const feature = e.features[0];
                     const name = feature.properties.NAME;
                     const coordinates = e.lngLat;
+                    console.log(coordinates);
 
                     // Update popup info
                     setPopupInfo({
@@ -259,10 +261,16 @@ const MapComponent = () => {
             {/* Popup at the bottom of the page */}
             {popupInfo.showPopup && (
                 <div className="popup">
-                    <p><strong>Name:</strong> {popupInfo.name}</p>
+                    {/*<p><strong>Name:</strong> {popupInfo.name}</p>*/}
                     <small>
-                        <strong>Lat:</strong> {popupInfo.lat.toFixed(4)}{" "}
-                        <strong>Lng:</strong> {popupInfo.lng.toFixed(4)}
+                        {popupInfo.lat != null && popupInfo.lng != null ? (
+                            <>
+                                <strong>Lat:</strong> {popupInfo.lat.toFixed(4)}{" "}
+                                <strong>Lng:</strong> {popupInfo.lng.toFixed(4)}
+                            </>
+                        ) : (
+                            "Coordinates not available"
+                        )}
                     </small>
                     <button onClick={closePopup} className="popup-close-button">Close</button>
                 </div>
