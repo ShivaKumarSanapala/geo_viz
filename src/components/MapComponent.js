@@ -95,8 +95,8 @@ const MapComponent = () => {
 
                 // Remove old layers and source if already added.
                 if (map.getSource('boundaries')) {
-                    if (map.getLayer('state-boundaries')) map.removeLayer('state-boundaries');
-                    if (map.getLayer('state-borders')) map.removeLayer('state-borders');
+                    map.removeLayer('state-boundaries');
+                    map.removeLayer('state-borders');
                     map.removeSource('boundaries');
                 }
 
