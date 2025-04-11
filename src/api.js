@@ -1,9 +1,18 @@
-export const getStateDemographics = async (lat, lng) => {
-    const url = `http://localhost:5001/demographics?lat=${lat}&lng=${lng}`;
+const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:5002'; // Default to localhost if not set
+
+// Fetch demographics data
+export const getDemographics = async (lat, lng) => {
+    const url = `${BASE_URL}/demographics?lat=${lat}&lng=${lng}`;
     return await fetchData(url);
 };
 
-// Provided fetchData function for reference:
+// Fetch nearby places data
+export const getNearbyPlaces = async (lat, lng, radius, page = 1, limit = 30) => {
+    const url = `${BASE_URL}/nearby-redis?lat=${lat}&lng=${lng}&radius=${radius}&page=${page}&limit=${limit}`;
+    return await fetchData(url);
+};
+
+// Helper function to fetch data
 const fetchData = async (url) => {
     try {
         const response = await fetch(url);

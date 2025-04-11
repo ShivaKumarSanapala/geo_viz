@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import { getStateDemographics } from '../api';
+import {getNearbyPlaces, getDemographics} from '../api';
 import Sidebar from './Sidebar';
 import { createGeoJSONCircle } from '../utils/createGeoJSONCircle';
 
@@ -180,17 +180,14 @@ const MapComponent = () => {
                     markerRef.current.push(newMarker);
 
                     try {
-                        const demogData = await getStateDemographics(coordinates.lat, coordinates.lng);
-                        if (!cancelled && demogData) setStateData(demogData);
+                        const demographicData = await getDemographics(coordinates.lat, coordinates.lng);
+                        if (!cancelled && demographicData) setStateData(demographicData);
                     } catch (error) {
                         console.error('Error fetching demographics:', error);
                     }
 
                     try {
-                        const res = await fetch(
-                            `http://localhost:5001/nearby-redis?lat=${coordinates.lat}&lng=${coordinates.lng}&radius=${radius}&page=1&limit=30`
-                        );
-                        const data = await res.json();
+                        const data = await getNearbyPlaces(coordinates.lat, coordinates.lng, radius);
                         if (!cancelled) setNearbyPlaces(data.nearby || []);
                     } catch (error) {
                         console.error('Error fetching nearby places:', error);
