@@ -1,0 +1,299 @@
+.sidebar {
+    width: 300px;
+    background-color: #ffffff;
+    padding: 20px;
+    overflow-y: auto;
+    border-left: 2px solid #ddd;
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+    flex-shrink: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 1000; /* Ensure it's above the map */
+    height: 100vh;
+    transition: transform 0.3s ease; /* Smooth transition when hidden */
+    transform: translateX(0); /* Default state */
+}
+
+/* Hide Sidebar for Smaller Screens */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(100%); /* Moves sidebar out of view */
+    }
+}
+
+/* Sidebar Header */
+.header h3 {
+    font-size: 1.5em;
+    color: #333;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.header .title {
+    color: #333;
+}
+
+.header small {
+    font-size: 12px;
+    color: gray;
+}
+
+/* Controls */
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* Form Controls */
+.select-fieldset, .autocomplete input {
+    border-radius: 5px;
+    padding: 10px;
+    background-color: #fcfbfb;
+    border: 1px solid #ccc;
+    width: 90%;
+}
+
+.select-fieldset label {
+    font-size: 14px;
+    color: #555;
+}
+
+.select-container select {
+    padding: 8px;
+    border: 1px solid #aaa;
+    border-radius: 4px;
+}
+
+/* Boundary Info */
+.boundary-info {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+/* Switch */
+.switch-container {
+    display: flex;
+    align-items: center;
+}
+
+.switch-container input {
+    display: none;
+}
+
+.switch-container .slider {
+    width: 34px;
+    height: 20px;
+    background: #ccc;
+    border-radius: 34px;
+    position: relative;
+    cursor: pointer;
+}
+
+.switch-container input:checked + .slider {
+    background: #4caf50;
+}
+
+.switch-container .slider:before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 14px;
+    height: 14px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.4s;
+}
+
+.switch-container input:checked + .slider:before {
+    left: 17px;
+}
+
+/* Sidebar.css */
+.state-demographics {
+    margin-top: 20px;
+    padding: 10px;
+    background-color: #f1f1f1;
+    border-radius: 8px;
+}
+
+.state-demographics h4 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+}
+
+.section {
+    margin-bottom: 15px;
+}
+
+.section h5 {
+    font-size: 1.2rem;
+    margin-bottom: 8px;
+}
+
+.section p {
+    margin: 5px 0;
+    font-size: 1rem;
+}
+
+.state-name h4 {
+    font-size: 1.2rem;
+    margin-bottom: 10px;
+}
+
+/* Timeline container styling */
+.timeline-container {
+    margin: 15px 0;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #fcfcfc;
+}
+
+/* Label for the timeline */
+.timeline-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+/* Timeline slider style */
+.timeline-slider {
+    width: 100%;
+    margin: 10px 0;
+}
+
+/* Year marks styling */
+.timeline-year-marks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8em;
+    color: #555;
+}
+
+/* Active mark styling */
+.year-mark.active {
+    font-weight: bold;
+    color: #333;
+}
+
+/* Example fade-in effect for updating demographic data */
+.demog-entry {
+    opacity: 1;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.demog-entry.fade-in {
+    opacity: 0;
+    animation: fadeInAnimation 0.5s forwards;
+}
+
+@keyframes fadeInAnimation {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Toggle Button Style */
+.toggle-btn {
+    border: none;
+    background: transparent;
+    font-size: 1.2rem;
+    margin-left: 10px;
+    cursor: pointer;
+    outline: none;
+    color: #333;
+}
+
+/* Optional: Change background on hover for better UX */
+.toggle-btn:hover {
+    color: #000;
+}
+
+/* Optional transition for expandable section */
+.demographics-section {
+    transition: max-height 0.4s ease-in-out, opacity 0.4s ease;
+    overflow: hidden;
+}
+
+.clickable-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    background-color: #f7f7f7;
+    padding: 10px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.clickable-header:hover {
+    background-color: #ebebeb;
+    transform: scale(1.01);
+}
+
+
+.expand-icon {
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.demog-entry .demog-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.demog-entry .demog-table td {
+    padding: 4px 6px;  /* Reduced padding */
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    font-size: 0.85rem; /* Reduced font size */
+}
+
+.demog-entry .demog-table td:last-child {
+    text-align: right;
+}
+
+.demog-entry .demog-table strong {
+    font-size: 1rem; /* Optional: slightly bigger for bolded data */
+}
+
+.search-input {
+    width: 90%;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    margin-top: 5px;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #ccc;
+    width: 100%;
+    max-height: 200px;
+    overflow-y: auto;
+    list-style: none;
+    margin-top: 4px;
+    padding: 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.autocomplete-dropdown li {
+    padding: 8px 12px;
+    cursor: pointer;
+}
+
+.autocomplete-dropdown li:hover {
+    background-color: #f0f0f0;
+}
+
+.select-fieldset {
+    position: relative;
+}
