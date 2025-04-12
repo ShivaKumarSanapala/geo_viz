@@ -66,25 +66,48 @@ const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBounda
                                         key={year}
                                         className={`year-mark ${year === Number(selectedYear) ? 'active' : ''}`}
                                     >
-                                    {year}
-                                </span>
+                    {year}
+                </span>
                                 ))}
                             </div>
                         </div>
                         {yearData ? (
                             <div className="demog-entry fade-in">
-                                <p><small>👥 Total Population: {yearData.total_population}</small></p>
-                                <p><small>👩 Female Population: {yearData.female_population}</small></p>
-                                <p><small>🏠 Median Rent: ${yearData.median_gross_rent_in_dollars}</small></p>
-                                <p><small>💰 Household Income: ${yearData.median_household_income_past12months}</small></p>
-                                <p><small>👨🎓Bachelor's Degree (25+): {yearData.male_bachelors_degree_25yrs_above}</small></p>
-                                <p><small>👩🎓Bachelor's Degree (25+): {yearData.female_bachelors_degree_25yrs_above}</small></p>
+                                <table className="demog-table">
+                                    <tbody>
+                                    <tr>
+                                        <td>👥 Total Population</td>
+                                        <td><strong>{yearData.total_population}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>👩 Female Population</td>
+                                        <td><strong>{yearData.female_population}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>🏠 Median Rent</td>
+                                        <td><strong>${yearData.median_gross_rent_in_dollars}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>💰 Household Income</td>
+                                        <td><strong>${yearData.median_household_income_past12months}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>👨🎓 Bachelor's Degree (25+)</td>
+                                        <td><strong>{yearData.male_bachelors_degree_25yrs_above}</strong></td>
+                                    </tr>
+                                    <tr>
+                                        <td>👩🎓 Bachelor's Degree (25+)</td>
+                                        <td><strong>{yearData.female_bachelors_degree_25yrs_above}</strong></td>
+                                    </tr>
+                                    </tbody>
+                                </table>
                             </div>
                         ) : (
                             <p><small>❗ No data available for the selected year.</small></p>
                         )}
                     </>
                 )}
+
             </div>
         );
     };

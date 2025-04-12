@@ -242,3 +242,23 @@
     font-size: 1.5rem;
     font-weight: bold;
 }
+
+.demog-entry .demog-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.demog-entry .demog-table td {
+    padding: 4px 6px;  /* Reduced padding */
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    font-size: 0.85rem; /* Reduced font size */
+}
+
+.demog-entry .demog-table td:last-child {
+    text-align: right;
+}
+
+.demog-entry .demog-table strong {
+    font-size: 1rem; /* Optional: slightly bigger for bolded data */
+}
