@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import '../css/Sidebar.css';
 
 const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBoundaryType }) => {
+    // State for timeline selections for state and county demographics
     const [selectedStateYear, setSelectedStateYear] = useState('');
     const [selectedCountyYear, setSelectedCountyYear] = useState('');
+
+    // States to track if sections are expanded or collapsed
+    const [isCountyExpanded, setIsCountyExpanded] = useState(true);
+    const [isStateExpanded, setIsStateExpanded] = useState(true);
 
     useEffect(() => {
         if (stateData?.state?.demographics?.length > 0) {
@@ -16,38 +21,73 @@ const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBounda
         }
     }, [stateData]);
 
+    // Utility function to return an ascending array of sorted years from the demographic data
+    const getSortedYears = (data) => {
+        const demographics = data.demographics || [];
+        return [...new Set(demographics.map(d => d.year))].sort((a, b) => a - b);
+    };
+
+    // Render the demographics section with a timeline slider and expandable behavior.
     const renderDemographics = (title, data, selectedYear, setSelectedYear) => {
         const demographics = data.demographics || [];
-        const years = [...new Set(demographics.map(d => d.year))].sort((a, b) => b - a);
-        const yearData = demographics.find(d => d.year === Number(selectedYear)); // ✅ Convert to number
+        const sortedYears = getSortedYears(data);
+        const yearData = demographics.find(d => d.year === Number(selectedYear));
+
+        const isCounty = title.toLowerCase().includes('county');
+        const isExpanded = isCounty ? isCountyExpanded : isStateExpanded;
+        const setIsExpanded = isCounty ? setIsCountyExpanded : setIsStateExpanded;
 
         return (
             <div className="demographics-section">
-                <h4>{title} - {data.name}</h4>
-                <div className="select-container">
-                    <label>📅 Select Year</label>
-                    <select value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                        {years.map((year) => (
-                            <option key={year} value={year}>{year}</option>
-                        ))}
-                    </select>
+                <div
+                    className="demographics-title clickable-header"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <h5>{title} - {data.name}</h5>
+                    <span className="expand-icon">{isExpanded ? '−' : '+'}</span>
                 </div>
-                {yearData ? (
-                    <div className="demog-entry">
-                        <p><small>👥 Total Population: {yearData.total_population}</small></p>
-                        <p><small>👩 Female Population: {yearData.female_population}</small></p>
-                        <p><small>🏠 Median Rent: ${yearData.median_gross_rent_in_dollars}</small></p>
-                        <p><small>💰 Household Income: ${yearData.median_household_income_past12months}</small></p>
-                        <p><small>👨🎓Bachelor's Degree (25+): {yearData.male_bachelors_degree_25yrs_above}</small></p>
-                        <p><small>👩🎓Bachelor's  (25+): {yearData.female_bachelors_degree_25yrs_above}</small></p>
-                    </div>
-                ) : (
-                    <p><small>❗ No data available for the selected year.</small></p>
+
+                {isExpanded && (
+                    <>
+                        <div className="timeline-container">
+                            {/*<div className="timeline-label">Year: {selectedYear}</div>*/}
+                            <input
+                                type="range"
+                                min={sortedYears[0]}
+                                max={sortedYears[sortedYears.length - 1]}
+                                step={1}
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                className="timeline-slider"
+                            />
+                            <div className="timeline-year-marks">
+                                {sortedYears.map((year) => (
+                                    <span
+                                        key={year}
+                                        className={`year-mark ${year === Number(selectedYear) ? 'active' : ''}`}
+                                    >
+                                    {year}
+                                </span>
+                                ))}
+                            </div>
+                        </div>
+                        {yearData ? (
+                            <div className="demog-entry fade-in">
+                                <p><small>👥 Total Population: {yearData.total_population}</small></p>
+                                <p><small>👩 Female Population: {yearData.female_population}</small></p>
+                                <p><small>🏠 Median Rent: ${yearData.median_gross_rent_in_dollars}</small></p>
+                                <p><small>💰 Household Income: ${yearData.median_household_income_past12months}</small></p>
+                                <p><small>👨🎓Bachelor's Degree (25+): {yearData.male_bachelors_degree_25yrs_above}</small></p>
+                                <p><small>👩🎓Bachelor's Degree (25+): {yearData.female_bachelors_degree_25yrs_above}</small></p>
+                            </div>
+                        ) : (
+                            <p><small>❗ No data available for the selected year.</small></p>
+                        )}
+                    </>
                 )}
             </div>
         );
     };
-
 
     return (
         <div className="sidebar">
@@ -62,40 +102,22 @@ const Sidebar = ({ stateName, stateData, selectedBoundaryType, setSelectedBounda
                 <fieldset className="select-fieldset">
                     <label>📍 Select Boundary Type</label>
                     <div className="select-container">
-                        <select value={selectedBoundaryType} onChange={(e) => setSelectedBoundaryType(e.target.value)}>
+                        <select
+                            value={selectedBoundaryType}
+                            onChange={(e) => setSelectedBoundaryType(e.target.value)}
+                        >
                             <option value="states">🗺️ States</option>
                             <option value="counties">🏞️ Counties</option>
                             <option value="regions">📌 Regions</option>
                         </select>
                     </div>
                 </fieldset>
-
-                {/*<div className="autocomplete" id="autocomplete">*/}
-                {/*    <input type="text" placeholder="🔍 Search for a location..." />*/}
-                {/*</div>*/}
-
-                {/*<div className="boundary-info">*/}
-                {/*    <span id="boundaryCount">📊 0 Boundaries</span>*/}
-                {/*    <label className="switch-container" title="Toggle boundary visibility">*/}
-                {/*        <input type="checkbox" />*/}
-                {/*        <span className="slider"></span>*/}
-                {/*    </label>*/}
-                {/*</div>*/}
-
-                {/*{stateName && (*/}
-                {/*    <div className="state-name">*/}
-                {/*        <h4>🗺️ Selected: <strong>{stateName}</strong></h4>*/}
-                {/*    </div>*/}
-                {/*)}*/}
-
-                {stateData?.county &&
-                    renderDemographics("📊 County Demographics", stateData.county, selectedCountyYear, setSelectedCountyYear)
-                }
-
                 {stateData?.state &&
                     renderDemographics("📈 State Demographics", stateData.state, selectedStateYear, setSelectedStateYear)
                 }
-
+                {stateData?.county &&
+                    renderDemographics("📊 County Demographics", stateData.county, selectedCountyYear, setSelectedCountyYear)
+                }
             </div>
         </div>
     );
