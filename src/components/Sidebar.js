@@ -1,49 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import '../css/Sidebar.css';
 
-const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType }) => {
+const BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:5001';
+
+const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType, setSelectedBoundaryGeometry }) => {
     const [selectedStateYear, setSelectedStateYear] = useState('');
     const [selectedCountyYear, setSelectedCountyYear] = useState('');
     const [isCountyExpanded, setIsCountyExpanded] = useState(true);
     const [isStateExpanded, setIsStateExpanded] = useState(true);
 
-    const [allBoundaries, setAllBoundaries] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filteredBoundaries, setFilteredBoundaries] = useState([]);
     const [selectedBoundary, setSelectedBoundary] = useState(null);
-
-    const mockApi = async (boundaryType, query) => {
-        //Mock API data
-        const stateData = [
-            { name: "Texas", geo_id: "48" },
-            { name: "California", geo_id: "06" },
-            { name: "New York", geo_id: "36" },
-            { name: "Florida", geo_id: "12" },
-            { name: "Michigan", geo_id: "26" },
-        ];
-
-        const countyData = [
-            { name: "Los Angeles County", geo_id: "06037" },
-            { name: "Cook County", geo_id: "17031" },
-            { name: "Harris County", geo_id: "48201" },
-            { name: "Miami-Dade County", geo_id: "12086" },
-            { name: "Wayne County", geo_id: "26163" },
-            { name: "Travis County", geo_id: "48453" },
-        ];
-
-        const data = boundaryType === 'states' ? stateData : countyData;
-
-        const filtered = data.filter(item =>
-            item.name.toLowerCase().includes(query.toLowerCase())
-        );
-
-        // Simulate API delay
-        return new Promise(resolve => {
-            setTimeout(() => {
-                resolve(filtered);
-            }, 200); // 200ms delay
-        });
-    };
 
     useEffect(() => {
         if (stateData?.state?.demographics?.length > 0) {
@@ -56,35 +24,96 @@ const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType }) =
         }
     }, [stateData]);
 
-    useEffect(() => {
-        const fetchBoundaries = async (searchQuery = '') => {
-            if (selectedBoundaryType !== 'states' && selectedBoundaryType !== 'counties') {
-                setAllBoundaries([]);
-                setFilteredBoundaries([]);
-                console.log("Boundary type not states or counties, cleared boundaries.");
-                return;
-            }
-
-            try {
-                const data = await mockApi(selectedBoundaryType, searchQuery);
-                setAllBoundaries(data);
-                setFilteredBoundaries(data);
-                console.log("Boundaries fetched:", data);
-            } catch (err) {
-                console.error("Failed to fetch boundaries:", err);
-            }
-        };
-
-        fetchBoundaries(); // Initial fetch
-    }, [selectedBoundaryType]);
-
     const getSortedYears = (data) => {
         const demographics = data.demographics || [];
         return [...new Set(demographics.map(d => d.year))].sort((a, b) => a - b);
     };
 
+    const handleBoundarySelection = (boundary) => {
+        setSelectedBoundary(boundary);
+        setSearchTerm('');
+        setFilteredBoundaries([]);
+        console.log("Selected boundary:", boundary);
+        setSelectedBoundaryGeometry(boundary.geometry); // Pass geometry to MapComponent
+    };
+
+    const handleSearch = async (value) => {
+        setSearchTerm(value);
+        if (!value) {
+            setFilteredBoundaries([]);
+            return;
+        }
+
+        try {
+            const res = await fetch(`${BASE_URL}/search?boundaryType=${selectedBoundaryType}&query=${value}`);
+            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            const data = await res.json();
+            setFilteredBoundaries(data);
+        } catch (err) {
+            console.error("Search API failed:", err);
+            setFilteredBoundaries([]);
+        }
+    };
+
     const renderDemographics = (title, data, selectedYear, setSelectedYear) => {
-        // ... (renderDemographics function remains the same)
+        const demographics = data.demographics || [];
+        const sortedYears = getSortedYears(data);
+        const yearData = demographics.find(d => d.year === Number(selectedYear));
+
+        const isCounty = title.toLowerCase().includes('county');
+        const isExpanded = isCounty ? isCountyExpanded : isStateExpanded;
+        const setIsExpanded = isCounty ? setIsCountyExpanded : setIsStateExpanded;
+
+        return (
+            <div className="demographics-section">
+                <div className="demographics-title clickable-header" onClick={() => setIsExpanded(!isExpanded)}>
+                    <h5>{title} - {data.name}</h5>
+                    <span className="expand-icon">{isExpanded ? '−' : '+'}</span>
+                </div>
+
+                {isExpanded && (
+                    <>
+                        <div className="timeline-container">
+                            <input
+                                type="range"
+                                min={sortedYears[0]}
+                                max={sortedYears[sortedYears.length - 1]}
+                                step={1}
+                                value={selectedYear}
+                                onChange={(e) => setSelectedYear(e.target.value)}
+                                className="timeline-slider"
+                            />
+                            <div className="timeline-year-marks">
+                                {sortedYears.map((year) => (
+                                    <span
+                                        key={year}
+                                        className={`year-mark ${year === Number(selectedYear) ? 'active' : ''}`}
+                                    >
+                                        {year}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                        {yearData ? (
+                            <div className="demog-entry fade-in">
+                                <table className="demog-table">
+                                    <tbody>
+                                    <tr><td>👥 Total Population</td><td><strong>{yearData.total_population}</strong></td></tr>
+                                    <tr><td>👩 Female Population</td><td><strong>{yearData.female_population}</strong></td></tr>
+                                    <tr><td>🏠 Median Rent</td><td><strong>${yearData.median_gross_rent_in_dollars}</strong></td></tr>
+                                    <tr><td>💰 Household Income</td><td><strong>${yearData.median_household_income_past12months}</strong></td></tr>
+                                    <tr><td>👨🎓 Bachelor's Degree (25+)</td><td><strong>{yearData.male_bachelors_degree_25yrs_above}</strong></td></tr>
+                                    <tr><td>👩🎓 Bachelor's Degree (25+)</td><td><strong>{yearData.female_bachelors_degree_25yrs_above}</strong></td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <p><small>❗ No data available for the selected year.</small></p>
+                        )}
+                    </>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -106,29 +135,20 @@ const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType }) =
                         >
                             <option value="states">🗺️ States</option>
                             <option value="counties">🏞️ Counties</option>
-                            <option value="regions">📌 Regions</option>
+                            {/*<option value="regions">📌 Regions</option>*/}
                         </select>
                     </div>
                 </fieldset>
 
                 {(selectedBoundaryType === 'states' || selectedBoundaryType === 'counties') && (
                     <fieldset className="select-fieldset">
-                        <label>🔍 Search {selectedBoundaryType ? selectedBoundaryType.slice(0, -1) : ''}</label>
+                        <label>🔍 Search {selectedBoundaryType.slice(0, -1)}</label>
                         <div className="search-container">
                             <input
                                 type="text"
                                 placeholder={`Search ${selectedBoundaryType}`}
                                 value={searchTerm}
-                                onChange={(e) => {
-                                    const value = e.target.value;
-                                    setSearchTerm(value);
-                                    mockApi(selectedBoundaryType, value)
-                                        .then(data => {
-                                            setFilteredBoundaries(data);
-                                            console.log("Search results:", data);
-                                        })
-                                        .catch(err => console.error("Search error:", err));
-                                }}
+                                onChange={(e) => handleSearch(e.target.value)}
                                 className="search-input"
                             />
                             {Array.isArray(filteredBoundaries) && searchTerm && (
@@ -136,12 +156,7 @@ const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType }) =
                                     {filteredBoundaries.slice(0, 10).map((item, idx) => (
                                         <li
                                             key={idx}
-                                            onClick={() => {
-                                                setSelectedBoundary(item);
-                                                setSearchTerm('');
-                                                setFilteredBoundaries([]);
-                                                console.log("Selected:", item);
-                                            }}
+                                            onClick={() => handleBoundarySelection(item)}
                                         >
                                             {item.name}
                                         </li>

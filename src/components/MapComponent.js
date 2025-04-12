@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
-import {getNearbyPlaces, getDemographics} from '../api';
+import { getNearbyPlaces, getDemographics } from '../api';
 import Sidebar from './Sidebar';
 import { createGeoJSONCircle } from '../utils/createGeoJSONCircle';
 
@@ -18,11 +18,13 @@ const MapComponent = () => {
     const [selectedBoundaryType, setSelectedBoundaryType] = useState('states');
     const [radius, setRadius] = useState(30000); // in meters
     const [nearbyPlaces, setNearbyPlaces] = useState([]);
+    const [selectedBoundaryGeometry, setSelectedBoundaryGeometry] = useState(null); // New state variable
 
     const mapRef = useRef(null);
     const previousLayerIds = useRef([]);
     const circleLayerAdded = useRef(false);
     const markerRef = useRef([]);
+    const selectedBoundaryLayer = useRef(null); //Ref for selected boundary layer.
 
     // Nearby places marker and boundaries update
     useEffect(() => {
@@ -237,6 +239,48 @@ const MapComponent = () => {
         };
     }, [selectedBoundaryType]);
 
+    // Handle selected boundary geometry
+    useEffect(() => {
+        if (mapRef.current && selectedBoundaryGeometry) {
+            const map = mapRef.current;
+
+            //Remove previous selected boundary layer
+            if(selectedBoundaryLayer.current){
+                if (map.getLayer('selected-boundary')) map.removeLayer('selected-boundary');
+                if (map.getSource('selected-boundary')) map.removeSource('selected-boundary');
+            }
+
+            map.addSource('selected-boundary', {
+                type: 'geojson',
+                data: {
+                    type: 'Feature',
+                    geometry: selectedBoundaryGeometry,
+                    properties: {}
+                }
+            });
+
+            map.addLayer({
+                id: 'selected-boundary',
+                type: 'line',
+                source: 'selected-boundary',
+                paint: {
+                    'line-color': 'red', // Highlight color
+                    'line-width': 3
+                }
+            });
+            selectedBoundaryLayer.current = 'selected-boundary';
+
+        }
+        return () => {
+            if(mapRef.current && selectedBoundaryLayer.current){
+                const map = mapRef.current;
+                if (map.getLayer('selected-boundary')) map.removeLayer('selected-boundary');
+                if (map.getSource('selected-boundary')) map.removeSource('selected-boundary');
+                selectedBoundaryLayer.current = null;
+            }
+        }
+    }, [selectedBoundaryGeometry]);
+
     return (
         <>
             <div className="radius-selector">
@@ -257,6 +301,7 @@ const MapComponent = () => {
                 stateData={stateData}
                 selectedBoundaryType={selectedBoundaryType}
                 setSelectedBoundaryType={setSelectedBoundaryType}
+                setSelectedBoundaryGeometry={setSelectedBoundaryGeometry} // Pass geometry setter to Sidebar
             />
         </>
     );
