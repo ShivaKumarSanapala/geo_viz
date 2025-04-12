@@ -135,7 +135,6 @@ const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType, set
                         >
                             <option value="states">🗺️ States</option>
                             <option value="counties">🏞️ Counties</option>
-                            {/*<option value="regions">📌 Regions</option>*/}
                         </select>
                     </div>
                 </fieldset>
@@ -158,7 +157,7 @@ const Sidebar = ({ stateData, selectedBoundaryType, setSelectedBoundaryType, set
                                             key={idx}
                                             onClick={() => handleBoundarySelection(item)}
                                         >
-                                            {item.name}
+                                            {item.name} <span className="geo-id">({item.geo_id})</span>
                                         </li>
                                     ))}
                                 </ul>
